@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>User Input Geocode Example</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+
+<!-- MAP[START] -->
+<h1>User Input Geocode Example</h1>
+
+<h2>
+    <button id="login">Login</button>
+    <button  id="logout" class="hidden" >Logout</button>
+</h2>
+<div class="directionsContainer">
+    <div id="directionsPanel"></div>
+    <div id="directionsItinerary"></div>
+</div>
+<div id="main"> 
+   
+    <div id="inputform" class="hidden">    
+        <span>Uid:</span><input type="text" class="logname" id="uname">
+    <p>
+        <input type="text" id="from" value=""> <button id="get">Search</button>
+        <button id="current">現在地</button>  <button id="post">投稿</button>
+        <textarea id="text" rows="2" cols="50"></textarea>
+          <!-- <span>緯度:</span><input type = "text" id="lat"><span>経度:<input type = "text" id="lon"></span>  -->
+    </p>
+    </div>
+
+    <div id="myMap" class="mymap" style='width:100%;height:91%;'>
+    <div id='output'></div>
+    <div id="inputform" class="hidden">    
+    <div>
+</div>
+<script src='https://www.bing.com/api/maps/mapcontrol?callback=GetMap&key=Ahd7-AUcjGfNBNEqX5GeyZmPGfhN7MB9_48v-PMwjcIdgLqyZ0TDdrCNnQU47AO9' async defer></script>
+<script src="js/BmapQuery.js"></script>
+<script src='https://cdn.jsdelivr.net/gh/yamazakidaisuke/BmapQuery/js/BmapQuery.js'></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<!-- MAP[END] -->
+<script type="module">
+    // Import the functions you need from the SDKs you need
+    import { getDatabase, ref, push, set, onChildAdded, remove, onChildRemoved } 
+    from "https://www.gstatic.com/firebasejs/9.1.0/firebase-database.js";
+
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.1.0/firebase-app.js";
+        import {
+            getAuth,
+            signInWithPopup,
+            GoogleAuthProvider,
+            signOut,
+            onAuthStateChanged,
+        } from "https://www.gstatic.com/firebasejs/9.1.0/firebase-auth.js";
+
+    // TODO: Add SDKs for Firebase products that you want to use
+    // https://firebase.google.com/docs/web/setup#available-libraries
+  
+    // Your web app's Firebase configuration
+    const firebaseConfig = {***
+    };
+  
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    // let newPostRef =firebase.database().ref();
+    const db = getDatabase(app);  //Realtime databaseに接続
+    const dbRef = ref(db,"users/")  ; //RealtimeDB内の”Chat”を使う
+    const provider = new GoogleAuthProvider();
+    provider.addScope("https://www.googleapis.com/auth/contacts.readonly");
+    const auth = getAuth();
+    const login =$("#login");
+    const logout =$("#logout");
+    const inputform =$("#inputform");
+
+// let map1;
+
+
+    login.on('click',function () {
+        signInWithPopup(auth, provider)
+        .then((result) => {
+            console.log("ログイン成功");
+            $("#login").addClass('hidden');
+            [logout,inputform].forEach(el => {
+            el.removeClass('hidden');
+            })
+            $("#from").focus();
+            return;
+        }).catch((error) => {
+        // Handle Errors here.
+        const errorCode = error.code;
+        const errorMessage = error.message;
+        const email = error.email;
+        const credential = GoogleAuthProvider.credentialFromError(error);
+        alert("ログイン失敗");
+        // ...
+        });
+        });
+
+    logout.on('click',function () {
+        signOut(auth).then(()=>{
+            // sign ouf successful.
+            console.log("ログアウト");
+            $("#login").removeClass('hidden');
+            [logout, inputform].forEach(el => {
+            el.addClass('hidden');
+            })  
+        }).catch(()=>{
+            console.error(error)
+      })
+    });
+
+    onAuthStateChanged(auth,(user)=>{
+        if(user){
+            const uid =user.uid;
+            // ユーザー情報を取得できます
+        if(user !== null){
+            user.providerData.forEach((profile)=>   {
+                $(".logname").val(uid.substr(0, 8));
+                // console.log(uid);
+                // console.log("Sign-in provider:" + profile.providerId);
+                // console.log("Provider-specific Uid:" + profile.uid);
+                // console.log("Email:" + profile.email);
+        })}
+            $("#text").on("keydown",function(e){
+                if(e.keyCode == 13 && $("#text").val() !='' ){
+                const uid = $(".logname").val(uid.substr(0, 8))
+                    const text  = $("#text").val();
+                    const msg ={
+                        uid : uid,
+                        text : text,
+                    }
+                    const dbRef = ref(db,"users")
+                    const newPostRef = push(dbRef)
+                    set (newPostRef,msg);
+                $("#text").val("");
+                $("#text").focus();
+                    }                
+       
+            $("#post").on("click",function(){
+                if($("#text").val() !='' ){
+                    const text  = $("#text").val();
+                    const msg ={
+                        uid : uid,
+                        text : text,
+                    }
+                    const dbRef = ref(db,"users")
+                    const newPostRef = push(dbRef)
+                    set (newPostRef,msg);
+                $("#text").val("");
+                $("#text").focus();
+                    }   
+              })
+            });
+    }});
+    
+    onChildAdded(dbRef,function(data){ //dataと入れるとデータが入るというFirebaseの使用
+    if(data,text!= ''){
+    console.log(data)
+    const msg = data.val();
+    console.log(msg,"取得したデータの塊")
+    const key =data.key;
+    console.log(key,"データの塊にアクセス")
+    // ここから時間を取得
+    let date = new Date();
+        var ye = date.getFullYear();
+        var mo = ("0" + (date.getMonth()+1)).slice(-2);
+        var da = ("0" + date.getDate()).slice(-2);
+        var ho = ("0" + date.getHours()).slice(-2);
+        var mi = ("0" + date.getMinutes()).slice(-2); 
+        // ローカルに入れた値を取得する
+        date = ye +"年" + mo  + "月" + da + "日" + ho +"時" + mi+ "分";
+
+    // テンプレートリテラル<
+    let h =`
+       <ul>
+        <li class="user">${msg.uid.substr(0, 8)}</p>
+        <li class="message">${msg.text}</p>
+        <li class="date">${date}</div>
+       <ul>
+    `
+    // appen()のqueryのおまじない
+    $("#output").append(h); 
+        }
+      })
+
+
+
+  </script>
+
+
+<script>
+
+
+
+
+let map1;
+let lat_me;
+let lon_me;
+
+
+function mapsInit(position) {
+  //lat=緯度、lon=経度 を取得
+  const lat = position.coords.latitude;
+  const lon = position.coords.longitude;
+  const time = position.timestamp;
+console.log(time)
+  //Map表示
+  map1 = new Bmap("#myMap");
+  map1.startMap(lat, lon, "load", 18); //The place is Bellevue.
+  //Pinを追加
+  let pin = map1.pin(lat, lon, "#ff0000");
+  //Infoboxを追加
+  map1.infobox(lat, lon, "現在地");
+  $("#lat").val(lat);
+  $("#lon").val(lon);
+
+  $("#post").on("click",function(){
+  });
+};
+//****************************************
+    //失敗関数
+    //****************************************
+    // function mapsError(error) {
+    //   let e = "";
+    //   if (error.code == 1) { //1＝位置情報取得が許可されてない（ブラウザの設定）
+    //     e = "位置情報が許可されてません";
+    //   }
+    //   if (error.code == 2) { //2＝現在地を特定できない
+    //     e = "現在位置を特定できません";
+    //   }
+    //   if (error.code == 3) { //3＝位置情報を取得する前にタイムアウトになった場合
+    //     e = "位置情報を取得する前にタイムアウトになりました";
+    //   }
+    //   alert("エラー：" + e);
+    // };
+
+    //****************************************
+    //オプション設定
+    //****************************************
+    const set = {
+      enableHighAccuracy: true, //より高精度な位置を求める
+      maximumAge: 20000, //最後の現在地情報取得が20秒以内であればその情報を再利用する設定
+      timeout: 10000 //10秒以内に現在地情報を取得できなければ、処理を終了
+    };
+
+
+    // 最初に実行する関数
+
+
+let map,searchManager;
+    function GetMap() {
+        console.log()
+        map = new Microsoft.Maps.Map('#myMap', {
+            zoom: 18 ,
+            center: new Microsoft.Maps.Location(35.6149, 139.1941),
+            mapTypeId: Microsoft.Maps.MapTypeId.road
+        });
+        //Load the DrawingTools module
+        Microsoft.Maps.loadModule('Microsoft.Maps.Directions', function () {
+            //Create an instance of the directions manager.
+            directionsManager = new Microsoft.Maps.Directions.DirectionsManager(map);
+
+            //Specify where to display the route instructions.
+            directionsManager.setRenderOptions({itineraryContainer: '#directionsItinerary'});
+
+            //Specify the where to display the input panel
+            directionsManager.showInputPanel('directionsPanel');
+        });
+    }
+   
+
+
+function geocodeQuery(query) {
+    //If search manager is not defined, load the search module.
+    if (!searchManager) {
+        //Create an instance of the search manager and call the geocodeQuery function again.
+        Microsoft.Maps.loadModule('Microsoft.Maps.Search', function () {
+            searchManager = new Microsoft.Maps.Search.SearchManager(map);
+            geocodeQuery(query);
+        });
+    } else {
+        let searchRequest = {
+            where: query,
+            callback: function (r) {
+                //Add the first result to the map and zoom into it.
+                if (r && r.results && r.results.length > 0) {
+                    var pin = new Microsoft.Maps.Pushpin(r.results[0].location);
+                    map.entities.push(pin);
+
+                    map.setView({ bounds: r.results[0].bestView });
+                }
+            },
+            errorCallback: function (e) {
+                //If there is an error, alert the user about it.
+                alert("No results found.");
+            }
+        };
+        //Make the geocode request.
+        searchManager.geocode(searchRequest);
+    }
+}
+// SearchButton
+document.getElementById("get").onclick = function(){
+    geocodeQuery(document.getElementById("from").value);
+};
+
+document.getElementById("current").onclick = function(){
+    if(document.getElementById("get").value== "") {
+        navigator.geolocation.getCurrentPosition(mapsInit);
+} else if(document.getElementById("get").value != ""){
+    geocodeQuery(document.getElementById("from").value);
+} else alert("エラー"); 
+};
+
+
+</script>
+</body>
+</html>
